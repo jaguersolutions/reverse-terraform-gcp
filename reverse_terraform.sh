@@ -104,11 +104,16 @@ else
     # --- Run GCP Scrapers ---
     echo -e "${YELLOW}Running GCP GCS Bucket Scraper...${NC}"
     python3 gcp_gcs_scraper.py --project "$gcp_project_id"
+    echo -e "${GREEN}GCS Bucket Scraper finished.${NC}"
+
+    echo -e "${YELLOW}Pausing for 2 seconds to ensure file operations complete...${NC}"
+    sleep 2
 
     echo -e "${YELLOW}Running GCP Secret Manager Scraper...${NC}"
     python3 gcp_secrets_scraper.py --project "$gcp_project_id"
+    echo -e "${GREEN}Secret Manager Scraper finished.${NC}"
 
-    echo -e "${GREEN}Resource scraping complete.${NC}"
+    echo -e "${GREEN}All resource scraping complete.${NC}"
 fi
 
 # --- Generate README ---
