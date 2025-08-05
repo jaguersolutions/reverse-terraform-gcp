@@ -75,6 +75,104 @@ resource "google_storage_bucket" "{resource_name}" {{
 
                 print(f"Generated resource for GCS bucket: {bucket_name}")
 
+        elif resource_type == "google_secret_manager_secret":
+            for instance in resource["instances"]:
+                attributes = instance["attributes"]
+                secret_id = attributes["secret_id"]
+                resource_name = sanitize_for_terraform(secret_id)
+
+                # Create a directory for the resource type
+                resource_dir = os.path.join(output_dir, "secret_manager")
+                os.makedirs(resource_dir, exist_ok=True)
+                tf_file_path = os.path.join(resource_dir, "secrets.tf")
+
+                # Generate the resource block
+                tf_block = f"""
+resource "google_secret_manager_secret" "{resource_name}" {{
+  project   = "{attributes['project']}"
+  secret_id = "{secret_id}"
+
+  replication {{
+    automatic = true
+  }}
+
+  # Note: This is a simplified representation. Other attributes
+  # like labels, rotation, etc., are not included.
+}}
+"""
+                with open(tf_file_path, "a") as tf_file:
+                    tf_file.write(tf_block)
+
+                print(f"Generated resource for Secret Manager secret: {secret_id}")
+
+        elif resource_type == "google_cloudbuild_trigger":
+            for instance in resource["instances"]:
+                attributes = instance["attributes"]
+                trigger_id = attributes["trigger_id"]
+                name = attributes["name"]
+                resource_name = sanitize_for_terraform(name if name else trigger_id)
+
+                # Create a directory for the resource type
+                resource_dir = os.path.join(output_dir, "cloud_build")
+                os.makedirs(resource_dir, exist_ok=True)
+                tf_file_path = os.path.join(resource_dir, "triggers.tf")
+
+                # Generate the resource block
+                tf_block = f"""
+resource "google_cloudbuild_trigger" "{resource_name}" {{
+  project  = "{attributes['project']}"
+  location = "{attributes['location']}"
+  name     = "{name}"
+
+  # WARNING: The configuration for this trigger is complex and not fully
+  # represented here. You will need to manually configure the trigger
+  # details (e.g., filename, substitutions, included_files).
+  # This is just a placeholder to allow for import.
+
+  # Example placeholder for a build definition:
+  filename = "cloudbuild.yaml"
+}}
+"""
+                with open(tf_file_path, "a") as tf_file:
+                    tf_file.write(tf_block)
+
+                print(f"Generated resource for Cloud Build trigger: {name}")
+
+        elif resource_type == "google_cloud_run_v2_service":
+            for instance in resource["instances"]:
+                attributes = instance["attributes"]
+                name = attributes["name"]
+                location = attributes["location"]
+                resource_name = sanitize_for_terraform(name)
+
+                # Create a directory for the resource type
+                resource_dir = os.path.join(output_dir, "cloud_run")
+                os.makedirs(resource_dir, exist_ok=True)
+                tf_file_path = os.path.join(resource_dir, "services.tf")
+
+                # Generate the resource block
+                tf_block = f"""
+resource "google_cloud_run_v2_service" "{resource_name}" {{
+  project  = "{attributes['project']}"
+  location = "{location}"
+  name     = "{name}"
+
+  # WARNING: The configuration for this service is complex and not fully
+  # represented here. You will need to manually configure the template,
+  # traffic, etc. This is just a placeholder to allow for import.
+
+  template {{
+    containers {{
+      image = "gcr.io/cloudrun/placeholder" # Placeholder image
+    }}
+  }}
+}}
+"""
+                with open(tf_file_path, "a") as tf_file:
+                    tf_file.write(tf_block)
+
+                print(f"Generated resource for Cloud Run service: {name}")
+
     print(f"\nGenerated Terraform configurations in: {output_dir}")
 
 if __name__ == "__main__":
