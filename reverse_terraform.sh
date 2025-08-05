@@ -101,9 +101,12 @@ else
     fi
     echo -e "${GREEN}Python dependencies installed successfully.${NC}"
 
-    # --- Run GCP Scraper ---
-    echo -e "${YELLOW}Running the GCP resource scraper...${NC}"
-    python3 gcp_scraper.py --project "$gcp_project_id"
+    # --- Run GCP Scrapers ---
+    echo -e "${YELLOW}Running GCP GCS Bucket Scraper...${NC}"
+    python3 gcp_gcs_scraper.py --project "$gcp_project_id"
+
+    echo -e "${YELLOW}Running GCP Secret Manager Scraper...${NC}"
+    python3 gcp_secrets_scraper.py --project "$gcp_project_id"
 
     echo -e "${GREEN}Resource scraping complete.${NC}"
 fi

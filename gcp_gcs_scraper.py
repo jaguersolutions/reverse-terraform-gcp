@@ -56,7 +56,7 @@ resource "google_storage_bucket" "{resource_name}" {{
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="GCP Resource Scraper for Terraform")
+    parser = argparse.ArgumentParser(description="GCP GCS Bucket Scraper for Terraform")
     parser.add_argument("--project", required=True, help="GCP Project ID")
     args = parser.parse_args()
 
