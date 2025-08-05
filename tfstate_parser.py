@@ -7,21 +7,33 @@ def sanitize_for_terraform(name):
     """Sanitizes a name for use as a Terraform resource name."""
     return name.replace('-', '_')
 
-def download_tfstate(project_id, bucket_name):
-    """Downloads the tfstate file from GCS."""
-    storage_client = storage.Client(project=project_id)
-    bucket = storage_client.bucket(bucket_name)
+def download_tfstate(project_id, state_file_path):
+    """Downloads the tfstate file from a GCS path."""
+    if not state_file_path.startswith("gs://"):
+        print("Error: Invalid GCS path. It must start with 'gs://'.")
+        return None
 
-    # Check for default.tfstate first, then terraform.tfstate
-    blob = bucket.blob("default.tfstate")
-    if not blob.exists():
-        blob = bucket.blob("terraform.tfstate")
+    # Tira o gs://
+    path_without_prefix = state_file_path[5:]
+    # Pega o nome do bucket
+    bucket_name = path_without_prefix.split('/')[0]
+    # Pega o caminho do arquivo
+    blob_name = "/".join(path_without_prefix.split('/')[1:])
+
+    try:
+        storage_client = storage.Client(project=project_id)
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+
         if not blob.exists():
-            print(f"Error: Neither 'default.tfstate' nor 'terraform.tfstate' found in bucket gs://{bucket_name}")
+            print(f"Error: The file does not exist at the specified path: {state_file_path}")
             return None
 
-    print(f"Downloading gs://{bucket_name}/{blob.name}...")
-    return json.loads(blob.download_as_string())
+        print(f"Downloading {state_file_path}...")
+        return json.loads(blob.download_as_string())
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
 
 def generate_resources_from_state(tfstate_data):
     """Generates Terraform resource blocks from a tfstate file."""
@@ -68,9 +80,9 @@ resource "google_storage_bucket" "{resource_name}" {{
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Terraform State Parser for GCP")
     parser.add_argument("--project", required=True, help="GCP Project ID")
-    parser.add_argument("--bucket", required=True, help="GCS bucket name for tfstate")
+    parser.add_argument("--state-file-path", required=True, help="Full GCS path to the terraform.tfstate file (e.g., gs://bucket/path/to/terraform.tfstate)")
     args = parser.parse_args()
 
-    tfstate_json = download_tfstate(args.project, args.bucket)
+    tfstate_json = download_tfstate(args.project, args.state_file_path)
     if tfstate_json:
         generate_resources_from_state(tfstate_json)

@@ -67,9 +67,15 @@ echo -e "${GREEN}Successfully authenticated and set project to '$gcp_project_id'
 echo
 
 # --- Check for Terraform State File ---
-echo -e "${YELLOW}Checking for 'terraform.tfstate' in gs://${gcs_bucket_name}...${NC}"
-if gsutil -q stat "gs://${gcs_bucket_name}/default.tfstate" || gsutil -q stat "gs://${gcs_bucket_name}/terraform.tfstate"; then
-    echo -e "${GREEN}Found existing Terraform state file. Parsing...${NC}"
+echo -e "${YELLOW}Searching for 'terraform.tfstate' or 'default.tfstate' in gs://${gcs_bucket_name}...${NC}"
+tfstate_path=$(gsutil ls -r "gs://${gcs_bucket_name}/**/terraform.tfstate" | head -n 1)
+if [ -z "$tfstate_path" ]; then
+    tfstate_path=$(gsutil ls -r "gs://${gcs_bucket_name}/**/default.tfstate" | head -n 1)
+fi
+
+if [ -n "$tfstate_path" ]; then
+    echo -e "${GREEN}Found Terraform state file at: $tfstate_path${NC}"
+    echo -e "${YELLOW}Parsing the state file...${NC}"
 
     # --- Install Python Dependencies ---
     echo -e "${YELLOW}Installing Python dependencies from requirements.txt...${NC}"
@@ -81,7 +87,7 @@ if gsutil -q stat "gs://${gcs_bucket_name}/default.tfstate" || gsutil -q stat "g
     echo -e "${GREEN}Python dependencies installed successfully.${NC}"
 
     # --- Run tfstate parser ---
-    python3 tfstate_parser.py --project "$gcp_project_id" --bucket "$gcs_bucket_name"
+    python3 tfstate_parser.py --project "$gcp_project_id" --state-file-path "$tfstate_path"
     echo -e "${GREEN}Terraform state parsing complete.${NC}"
 else
     echo -e "${YELLOW}No existing Terraform state file found. Scanning GCP project for resources...${NC}"
