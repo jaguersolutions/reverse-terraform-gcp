@@ -1,6 +1,6 @@
 import argparse
 import os
-from google.cloud import build_v1
+from google.cloud.devtools import cloudbuild_v1
 
 def sanitize_for_terraform(name):
     """Sanitizes a name for use as a Terraform resource name."""
