@@ -6,17 +6,15 @@ def sanitize_for_terraform(name):
     """Sanitizes a name for use as a Terraform resource name."""
     return name.replace('-', '_')
 
-def generate_cloudbuild_resources(project_id):
+def generate_cloudbuild_resources(project_id, location):
     """
     Fetches all Cloud Build triggers in a project and generates Terraform
     resource blocks and import commands.
     """
     try:
         client = cloudbuild_v1.CloudBuildClient()
-        parent = f"projects/{project_id}"
-        # Note: Cloud Build API requires a location. Using 'global' as a default.
-        # This might need to be adjusted if triggers are in other locations.
-        triggers = client.list_build_triggers(project_id=project_id, location="global")
+        parent = f"projects/{project_id}/locations/{location}"
+        triggers = client.list_build_triggers(parent=parent)
     except Exception as e:
         print(f"Error connecting to GCP or fetching Cloud Build triggers: {e}")
         return
@@ -69,6 +67,7 @@ resource "google_cloudbuild_trigger" "{resource_name}" {{
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GCP Cloud Build Scraper for Terraform")
     parser.add_argument("--project", required=True, help="GCP Project ID")
+    parser.add_argument("--location", required=True, help="The location of the Cloud Build triggers (e.g., 'global', 'us-central1')")
     args = parser.parse_args()
 
-    generate_cloudbuild_resources(args.project)
+    generate_cloudbuild_resources(args.project, args.location)
