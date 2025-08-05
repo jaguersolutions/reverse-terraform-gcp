@@ -3,3 +3,4 @@ google-cloud-secret-manager
 google-cloud-build
 google-cloud-run
 google-cloud-sourcerepo
+google-cloud-compute
