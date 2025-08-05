@@ -12,7 +12,7 @@ def generate_cloudbuild_resources(project_id):
     resource blocks and import commands.
     """
     try:
-        client = build_v1.CloudBuildClient()
+        client = cloudbuild_v1.CloudBuildClient()
         parent = f"projects/{project_id}"
         # Note: Cloud Build API requires a location. Using 'global' as a default.
         # This might need to be adjusted if triggers are in other locations.
