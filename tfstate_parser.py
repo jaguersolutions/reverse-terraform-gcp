@@ -44,134 +44,99 @@ def generate_resources_from_state(tfstate_data):
     output_dir = "generated_terraform"
     os.makedirs(output_dir, exist_ok=True)
 
+    # Dictionary to hold file handlers
+    file_handlers = {}
+
     for resource in tfstate_data["resources"]:
         resource_type = resource["type"]
 
-        # We'll start by supporting only GCS buckets
         if resource_type == "google_storage_bucket":
+            output_subdir = "gcs"
+            output_filename = "buckets.tf"
             for instance in resource["instances"]:
                 attributes = instance["attributes"]
                 bucket_name = attributes["name"]
                 resource_name = sanitize_for_terraform(bucket_name)
-
-                # Create a directory for the resource type
-                resource_dir = os.path.join(output_dir, "gcs")
-                os.makedirs(resource_dir, exist_ok=True)
-                tf_file_path = os.path.join(resource_dir, "buckets.tf")
-
-                # Generate the resource block
                 tf_block = f"""
 resource "google_storage_bucket" "{resource_name}" {{
   name          = "{bucket_name}"
   project       = "{attributes['project']}"
   location      = "{attributes['location']}"
   storage_class = "{attributes['storage_class']}"
-  # Note: This is a simplified representation. Other attributes
-  # like versioning, lifecycle_rules, etc., are not included.
 }}
 """
-                with open(tf_file_path, "a") as tf_file:
-                    tf_file.write(tf_block)
-
                 print(f"Generated resource for GCS bucket: {bucket_name}")
 
         elif resource_type == "google_secret_manager_secret":
+            output_subdir = "secret_manager"
+            output_filename = "secrets.tf"
             for instance in resource["instances"]:
                 attributes = instance["attributes"]
                 secret_id = attributes["secret_id"]
                 resource_name = sanitize_for_terraform(secret_id)
-
-                # Create a directory for the resource type
-                resource_dir = os.path.join(output_dir, "secret_manager")
-                os.makedirs(resource_dir, exist_ok=True)
-                tf_file_path = os.path.join(resource_dir, "secrets.tf")
-
-                # Generate the resource block
                 tf_block = f"""
 resource "google_secret_manager_secret" "{resource_name}" {{
   project   = "{attributes['project']}"
   secret_id = "{secret_id}"
-
-  replication {{
-    automatic = true
-  }}
-
-  # Note: This is a simplified representation. Other attributes
-  # like labels, rotation, etc., are not included.
+  replication {{ automatic = true }}
 }}
 """
-                with open(tf_file_path, "a") as tf_file:
-                    tf_file.write(tf_block)
-
                 print(f"Generated resource for Secret Manager secret: {secret_id}")
 
         elif resource_type == "google_cloudbuild_trigger":
+            output_subdir = "cloud_build"
+            output_filename = "triggers.tf"
             for instance in resource["instances"]:
                 attributes = instance["attributes"]
                 trigger_id = attributes["trigger_id"]
                 name = attributes["name"]
                 resource_name = sanitize_for_terraform(name if name else trigger_id)
-
-                # Create a directory for the resource type
-                resource_dir = os.path.join(output_dir, "cloud_build")
-                os.makedirs(resource_dir, exist_ok=True)
-                tf_file_path = os.path.join(resource_dir, "triggers.tf")
-
-                # Generate the resource block
                 tf_block = f"""
 resource "google_cloudbuild_trigger" "{resource_name}" {{
   project  = "{attributes['project']}"
   location = "{attributes['location']}"
   name     = "{name}"
-
-  # WARNING: The configuration for this trigger is complex and not fully
-  # represented here. You will need to manually configure the trigger
-  # details (e.g., filename, substitutions, included_files).
-  # This is just a placeholder to allow for import.
-
-  # Example placeholder for a build definition:
-  filename = "cloudbuild.yaml"
+  filename = "cloudbuild.yaml" # Placeholder
 }}
 """
-                with open(tf_file_path, "a") as tf_file:
-                    tf_file.write(tf_block)
-
                 print(f"Generated resource for Cloud Build trigger: {name}")
 
         elif resource_type == "google_cloud_run_v2_service":
+            output_subdir = "cloud_run"
+            output_filename = "services.tf"
             for instance in resource["instances"]:
                 attributes = instance["attributes"]
                 name = attributes["name"]
                 location = attributes["location"]
                 resource_name = sanitize_for_terraform(name)
-
-                # Create a directory for the resource type
-                resource_dir = os.path.join(output_dir, "cloud_run")
-                os.makedirs(resource_dir, exist_ok=True)
-                tf_file_path = os.path.join(resource_dir, "services.tf")
-
-                # Generate the resource block
                 tf_block = f"""
 resource "google_cloud_run_v2_service" "{resource_name}" {{
   project  = "{attributes['project']}"
   location = "{location}"
   name     = "{name}"
-
-  # WARNING: The configuration for this service is complex and not fully
-  # represented here. You will need to manually configure the template,
-  # traffic, etc. This is just a placeholder to allow for import.
-
   template {{
     containers {{
-      image = "gcr.io/cloudrun/placeholder" # Placeholder image
+      image = "gcr.io/cloudrun/placeholder"
     }}
   }}
 }}
 """
-                with open(tf_file_path, "a") as tf_file:
-                    tf_file.write(tf_block)
-
                 print(f"Generated resource for Cloud Run service: {name}")
+        else:
+            continue
+
+        # Get or create the file handler
+        if output_subdir not in file_handlers:
+            resource_dir = os.path.join(output_dir, output_subdir)
+            os.makedirs(resource_dir, exist_ok=True)
+            tf_file_path = os.path.join(resource_dir, output_filename)
+            file_handlers[output_subdir] = open(tf_file_path, "w")
+
+        file_handlers[output_subdir].write(tf_block)
+
+    # Close all file handlers
+    for handler in file_handlers.values():
+        handler.close()
 
     print(f"\nGenerated Terraform configurations in: {output_dir}")
 
